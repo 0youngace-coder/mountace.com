@@ -24,5 +24,99 @@ Error generating stack: `+u.message+`
 </script>
   <script>(function(){function m(a){var h=a.getAttribute("href");if(!h)return;try{var u=new URL(h,document.baseURI);if((u.protocol==="http:"||u.protocol==="https:")&&u.host!==location.host){a.target="_blank";a.rel="noopener noreferrer";}}catch(e){}}function s(){document.querySelectorAll("a[href]").forEach(m);}if(document.readyState!=="loading"){s();}else{document.addEventListener("DOMContentLoaded",s);}document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(a){m(a);}},true);})();</script>
   
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function replaceMap() {
+    // Find all elements containing the placeholder text
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    let targetDiv = null;
+    while(node = walker.nextNode()) {
+      if(node.nodeValue && node.nodeValue.includes('Google Maps embed ready')) {
+        targetDiv = node.parentElement;
+        // Go up to find the map container (the big dark rounded card)
+        let el = targetDiv;
+        for(let i=0;i<10;i++) {
+          if(!el) break;
+          // Look for the container with grid background and rounded corners
+          if(el.className && el.className.includes('rounded') && el.parentElement && el.parentElement.className && el.parentElement.className.includes('relative')) {
+            // This is likely the map wrapper
+          }
+          // Find the outermost map card: it has class containing 'bg-zinc' or similar dark
+          if(el.className && (el.className.includes('overflow-hidden') || el.className.includes('bg-[#') || el.className.includes('bg-zinc'))) {
+            // Check size
+            if(el.offsetWidth > 300 && el.offsetHeight > 300) {
+              targetDiv = el;
+              break;
+            }
+          }
+          el = el.parentElement;
+        }
+        break;
+      }
+    }
+    
+    // More direct: find the map card by its structure - it's the right side of FIND US section
+    // It contains the pin and the bottom bar "Riverside Dr & Wonderland area"
+    const allDivs = document.querySelectorAll('div');
+    let mapCard = null;
+    for(const d of allDivs) {
+      if(d.textContent.includes('Riverside Dr & Wonderland area') && d.textContent.includes('Mount Ace')) {
+        // Go up 3-4 levels to get the card container
+        let p = d;
+        for(let i=0;i<5;i++) {
+          if(p && p.className && p.className.includes('rounded') && p.offsetHeight > 400) {
+            mapCard = p;
+            break;
+          }
+          if(p) p = p.parentElement;
+        }
+        if(mapCard) break;
+      }
+    }
+    
+    if(mapCard) {
+      // Preserve dimensions
+      const h = mapCard.offsetHeight || 480;
+      mapCard.style.position = 'relative';
+      mapCard.style.overflow = 'hidden';
+      mapCard.style.background = '#1a1a1a';
+      
+      // Create real map iframe
+      mapCard.innerHTML = `
+        <div style="position:relative;width:100%;height:100%;min-height:480px;border-radius:28px;overflow:hidden;">
+          <iframe
+            src="https://www.google.com/maps?q=223+Riverside+Dr,+London,+ON+N6H+1E7,+Canada&z=16&output=embed"
+            width="100%"
+            height="100%"
+            style="border:0;position:absolute;inset:0;"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
+          <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);background:white;color:#18181b;border-radius:9999px;padding:8px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 12px 30px rgba(0,0,0,0.4);z-index:2;white-space:nowrap;">
+            <span style="width:8px;height:8px;background:#10b981;border-radius:50%;display:inline-block;animation:pulse 2s infinite;"></span>
+            Mount Ace • 223 Riverside Dr
+          </div>
+          <div style="position:absolute;bottom:24px;left:24px;right:24px;height:56px;background:rgba(39,39,42,0.85);backdrop-filter:blur(12px);border-radius:14px;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:2;">
+            <div style="font-size:12px;">
+              <div style="font-weight:600;color:white;">Riverside Dr & Wonderland area</div>
+              <div style="color:rgba(255,255,255,0.6);font-size:11px;">Easy parking • Store open daily</div>
+            </div>
+            <div style="font-size:18px;">🚚</div>
+          </div>
+        </div>
+      `;
+      console.log('Mount Ace map replaced successfully');
+    } else {
+      console.log('Map card not found, retrying...');
+      // Retry once more after 1 second
+      setTimeout(replaceMap, 1000);
+    }
+  }, 1500);
+});
+</script>
+
 </body>
 </html>
